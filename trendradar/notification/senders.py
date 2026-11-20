@@ -15,6 +15,7 @@
 每个发送函数都支持分批发送，并通过参数化配置实现与 CONFIG 的解耦。
 """
 
+import os
 import smtplib
 import time
 import json
@@ -1011,6 +1012,13 @@ def send_to_bark(
     # 统一添加批次头部（已预留空间，不会超限）
     batches = add_batch_headers(batches, "bark", batch_size)
 
+    # 网页版链接：配置 REPORT_URL 后，通知末尾附带可点击的分类网页版入口
+    report_url = (os.environ.get("REPORT_URL") or "").strip()
+    if report_url and batches:
+        link_line = f"\n👉 [点此打开分类网页版]({report_url})"
+        if len((batches[0] + link_line).encode("utf-8")) <= 4000:
+            batches[0] = batches[0].rstrip() + link_line
+
     total_batches = len(batches)
     print(f"{log_prefix}消息分为 {total_batches} 批次发送 [{report_type}]")
 
@@ -1046,6 +1054,11 @@ def send_to_bark(
             "group": "TrendRadar",
             "action": "none",  # 点击推送跳到 APP 不弹出弹框,方便阅读
         }
+
+        if report_url:
+            # 配置了网页版地址：点击通知直接打开分类网页版
+            payload["url"] = report_url
+            payload["action"] = "open"
 
         try:
             response = requests.post(
