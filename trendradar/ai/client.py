@@ -9,7 +9,10 @@ AI 客户端模块
 import os
 from typing import Any, Dict, List
 
-from litellm import completion
+try:
+    from litellm import completion
+except ImportError:  # 未安装 litellm 时不影响「不使用 AI 分析」的正常运行
+    completion = None
 
 
 class AIClient:
@@ -101,6 +104,10 @@ class AIClient:
                 params[key] = value
 
         # 调用 LiteLLM
+        if completion is None:
+            raise RuntimeError(
+                "未安装 litellm，无法使用 AI 分析；请在配置中关闭 analyze，或先安装依赖"
+            )
         response = completion(**params)
 
         # 提取响应内容
